@@ -86,7 +86,7 @@ function filterValid(articles) {
  * Sin API key, sin rate limits diarios, sin reinicio de Vite.
  */
 async function fetchFromRss() {
-  const ALLORIGINS = 'https://api.allorigins.win/raw?url='
+  const ALLORIGINS = 'https://api.codetabs.com/v1/proxy?quest='
 
   const results = await Promise.allSettled(
     RSS_FEEDS.map(async (feed) => {
