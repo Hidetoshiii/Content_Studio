@@ -110,6 +110,33 @@ function Step3Draft({ onAnalyzed }) {
         selected={currentPost.selectedHashtags ?? []}
         onToggle={toggleHashtag}
       />
+      
+      {/* Fuentes Investigadas por la IA */}
+      {currentPost.fuentes_investigadas && currentPost.fuentes_investigadas.length > 0 && (
+        <Card padding="sm" className="border-oxford-light/30 bg-oxford/10 space-y-2 mt-4">
+          <p className="text-xs font-semibold text-smoke-muted uppercase tracking-wide">
+            🌐 Fuentes consultadas por la IA
+          </p>
+          <ul className="space-y-2">
+            {currentPost.fuentes_investigadas.map((fuente, i) => (
+              <li key={i} className="text-sm text-smoke-muted leading-relaxed flex items-start gap-2">
+                <span className="text-oxford-light font-bold shrink-0">{fuente.id}</span>
+                <div>
+                  <p>{fuente.justificacion}</p>
+                  <a
+                    href={fuente.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-oxford-light hover:text-smoke transition-colors underline underline-offset-2"
+                  >
+                    Ver fuente original ↗
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       {/* Contador total */}
       <div className="flex items-center gap-3 py-2 border-t border-oxford-light/15">
