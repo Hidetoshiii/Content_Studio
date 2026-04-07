@@ -52,10 +52,16 @@ function useNews() {
 
     try {
       // 1. Obtener artículos crudos desde el servidor
-      const rawArticles = await fetchNews()
+      const { articles: rawArticles, manualMode } = await fetchNews()
 
-      if (rawArticles.length === 0) {
-        throw new Error('No se encontraron noticias disponibles en este momento.')
+      // Sin artículos (key no configurada o NewsData.io no disponible)
+      // → activar modo manual automáticamente sin bloquear al usuario
+      if (manualMode) {
+        addNotification({
+          type:    'warning',
+          message: 'Noticias automáticas no disponibles. Usa "Ingresar manualmente".',
+        })
+        return
       }
 
       // 2. Agente 1 — curación con Claude (server-side)
