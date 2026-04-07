@@ -127,7 +127,7 @@ function LoadingScreen({
 
   return (
     <div className={[
-      'flex flex-col items-start justify-center py-10 px-8 w-full max-w-md mx-auto space-y-6',
+      'flex flex-col items-start justify-center py-6 px-4 sm:py-10 sm:px-8 w-full max-w-md mx-auto space-y-6',
       className,
     ].join(' ')}>
       

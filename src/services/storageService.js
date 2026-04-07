@@ -1,167 +1,198 @@
 /**
- * storageService.js — CRUD sobre localStorage.
+ * storageService.js — CRUD sobre Supabase (news_bank + post_history).
  *
- * Centraliza toda la interacción con localStorage para que
- * el resto de la app nunca toque localStorage directamente.
- * Maneja errores silenciosamente para no romper la UI si
- * localStorage no está disponible (modo privado, cuota llena, etc).
+ * Todas las funciones son async. El cliente Supabase se importa desde
+ * @/lib/supabaseClient (instancia única con la clave anon pública).
+ *
+ * Tablas requeridas en Supabase:
+ *
+ *   create table news_bank (
+ *     id               text primary key,
+ *     title            text not null,
+ *     source           text,
+ *     url              text,
+ *     date             text,
+ *     future_potential text,
+ *     created_at       timestamptz default now()
+ *   );
+ *
+ *   create table post_history (
+ *     id             text primary key,
+ *     news_title     text,
+ *     format         text,
+ *     length_tier    text,
+ *     full_post      text,
+ *     angle          text,
+ *     topics_covered text[],
+ *     date           text,
+ *     created_at     timestamptz default now()
+ *   );
+ *
+ *   -- RLS: solo usuarios autenticados
+ *   alter table news_bank    enable row level security;
+ *   alter table post_history enable row level security;
+ *   create policy "auth_only" on news_bank    for all using (auth.role() = 'authenticated');
+ *   create policy "auth_only" on post_history for all using (auth.role() = 'authenticated');
  */
 
-import { STORAGE_KEYS } from '@/config/constants'
+import { supabase } from '@/lib/supabaseClient'
 
-// ─── Helpers internos ────────────────────────────────────────────────────────
-
-/**
- * safeGet — Lee y parsea un valor de localStorage.
- * @template T
- * @param {string} key
- * @param {T} fallback - Valor por defecto si no existe o hay error
- * @returns {T}
- */
-function safeGet(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key)
-    return raw !== null ? JSON.parse(raw) : fallback
-  } catch {
-    return fallback
-  }
-}
-
-/**
- * safeSet — Serializa y guarda un valor en localStorage.
- * @param {string} key
- * @param {unknown} value
- * @returns {boolean} true si se guardó correctamente
- */
-function safeSet(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-    return true
-  } catch {
-    console.warn(`[storageService] No se pudo guardar la key "${key}" en localStorage.`)
-    return false
-  }
-}
-
-// ─── API Keys ────────────────────────────────────────────────────────────────
-
-/**
- * @typedef {{ anthropic: string, newsdata: string }} ApiKeys
- */
-
-/** @returns {ApiKeys} */
-export function getApiKeys() {
-  return safeGet(STORAGE_KEYS.API_KEYS, { anthropic: '', newsdata: '' })
-}
-
-/** @param {ApiKeys} keys */
-export function saveApiKeys(keys) {
-  return safeSet(STORAGE_KEYS.API_KEYS, keys)
-}
-
-export function clearApiKeys() {
-  try {
-    localStorage.removeItem(STORAGE_KEYS.API_KEYS)
-  } catch { /* silent */ }
-}
-
-// ─── Banco de Noticias ───────────────────────────────────────────────────────
+// ─── Banco de Noticias ────────────────────────────────────────────────────────
 
 /**
  * @typedef {{
- *   id: string,
- *   title: string,
- *   source: string,
- *   url: string,
- *   date: string,
- *   future_potential: string
+ *   id: string, title: string, source: string, url: string,
+ *   date: string, future_potential: string
  * }} NewsBankItem
  */
 
-/** @returns {NewsBankItem[]} */
-export function getNewsBank() {
-  return safeGet(STORAGE_KEYS.NEWS_BANK, [])
+/** @returns {Promise<NewsBankItem[]>} */
+export async function getNewsBank() {
+  const { data, error } = await supabase
+    .from('news_bank')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.warn('[storageService] getNewsBank error:', error.message)
+    return []
+  }
+  return data ?? []
 }
 
 /**
  * Reemplaza el banco de noticias completo.
  * @param {NewsBankItem[]} items
  */
-export function saveNewsBank(items) {
-  return safeSet(STORAGE_KEYS.NEWS_BANK, items)
+export async function saveNewsBank(items) {
+  const { error: delErr } = await supabase.from('news_bank').delete().neq('id', '__none__')
+  if (delErr) console.warn('[storageService] saveNewsBank delete error:', delErr.message)
+
+  if (items.length === 0) return true
+
+  const { error } = await supabase.from('news_bank').insert(items)
+  if (error) {
+    console.warn('[storageService] saveNewsBank insert error:', error.message)
+    return false
+  }
+  return true
 }
 
 /**
  * Agrega ítems nuevos al banco, sin duplicar por URL.
  * @param {NewsBankItem[]} newItems
  */
-export function appendToNewsBank(newItems) {
-  const existing = getNewsBank()
-  const existingUrls = new Set(existing.map(i => i.url))
+export async function appendToNewsBank(newItems) {
+  if (!newItems?.length) return true
+
+  // Obtener URLs existentes para deduplicar
+  const { data: existing } = await supabase.from('news_bank').select('url')
+  const existingUrls = new Set((existing ?? []).map(r => r.url))
   const deduplicated = newItems.filter(i => !existingUrls.has(i.url))
-  return safeSet(STORAGE_KEYS.NEWS_BANK, [...deduplicated, ...existing])
+
+  if (deduplicated.length === 0) return true
+
+  const { error } = await supabase.from('news_bank').insert(deduplicated)
+  if (error) {
+    console.warn('[storageService] appendToNewsBank error:', error.message)
+    return false
+  }
+  return true
 }
 
 /**
  * Elimina un ítem del banco por id.
  * @param {string} id
  */
-export function removeFromNewsBank(id) {
-  const items = getNewsBank().filter(i => i.id !== id)
-  return safeSet(STORAGE_KEYS.NEWS_BANK, items)
+export async function removeFromNewsBank(id) {
+  const { error } = await supabase.from('news_bank').delete().eq('id', id)
+  if (error) console.warn('[storageService] removeFromNewsBank error:', error.message)
+  return !error
 }
 
-export function clearNewsBank() {
-  try { localStorage.removeItem(STORAGE_KEYS.NEWS_BANK) } catch { /* silent */ }
+export async function clearNewsBank() {
+  const { error } = await supabase.from('news_bank').delete().neq('id', '__none__')
+  if (error) console.warn('[storageService] clearNewsBank error:', error.message)
 }
 
-// ─── Historial de Posts ──────────────────────────────────────────────────────
+// ─── Historial de Posts ───────────────────────────────────────────────────────
 
 /**
  * @typedef {{
- *   id: string,
- *   date: string,
- *   newsTitle: string,
- *   format: string,
- *   length_tier: string,
- *   full_post: string,
- *   angle: string,
- *   topics_covered: string[]
+ *   id: string, newsTitle: string, format: string, length_tier: string,
+ *   full_post: string, angle: string, topics_covered: string[], date: string
  * }} PostHistoryItem
  */
 
-/** @returns {PostHistoryItem[]} */
-export function getPostHistory() {
-  return safeGet(STORAGE_KEYS.POST_HISTORY, [])
+/** Mapea fila de Supabase (snake_case) → objeto JS (camelCase donde aplica) */
+function rowToPost(row) {
+  return {
+    id:             row.id,
+    newsTitle:      row.news_title,
+    format:         row.format,
+    length_tier:    row.length_tier,
+    full_post:      row.full_post,
+    angle:          row.angle,
+    topics_covered: row.topics_covered ?? [],
+    date:           row.date,
+  }
+}
+
+/** @returns {Promise<PostHistoryItem[]>} */
+export async function getPostHistory() {
+  const { data, error } = await supabase
+    .from('post_history')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.warn('[storageService] getPostHistory error:', error.message)
+    return []
+  }
+  return (data ?? []).map(rowToPost)
 }
 
 /**
- * Agrega un post al historial. El más reciente queda primero.
+ * Agrega un post al historial.
  * @param {PostHistoryItem} post
  */
-export function addToPostHistory(post) {
-  const history = getPostHistory()
-  return safeSet(STORAGE_KEYS.POST_HISTORY, [post, ...history])
+export async function addToPostHistory(post) {
+  const { error } = await supabase.from('post_history').insert({
+    id:             post.id,
+    news_title:     post.newsTitle,
+    format:         post.format,
+    length_tier:    post.length_tier,
+    full_post:      post.full_post,
+    angle:          post.angle,
+    topics_covered: post.topics_covered ?? [],
+    date:           post.date,
+  })
+  if (error) {
+    console.warn('[storageService] addToPostHistory error:', error.message)
+    return false
+  }
+  return true
+}
+
+export async function clearPostHistory() {
+  const { error } = await supabase.from('post_history').delete().neq('id', '__none__')
+  if (error) console.warn('[storageService] clearPostHistory error:', error.message)
 }
 
 /**
- * Devuelve los últimos N posts, solo con los campos que
- * necesitan los agentes para evitar repetición de ángulos.
+ * Devuelve los últimos N posts en el formato que esperan los agentes de IA.
+ * Esta función opera sobre datos ya en memoria (postHistory del hook),
+ * así que se mantiene sincrónica — no hace llamada extra a Supabase.
+ *
+ * @param {PostHistoryItem[]} postHistory - Array ya cargado en el hook
  * @param {number} limit
- * @returns {{ fecha: string, titular_noticia_base: string, formato_usado: string, angulo: string, temas_cubiertos: string[] }[]}
  */
-export function getRecentHistoryForAgents(limit = 7) {
-  return getPostHistory()
-    .slice(0, limit)
-    .map(p => ({
-      fecha:               p.date,
-      titular_noticia_base: p.newsTitle,
-      formato_usado:       p.format,
-      angulo:              p.angle,
-      temas_cubiertos:     p.topics_covered ?? [],
-    }))
-}
-
-export function clearPostHistory() {
-  try { localStorage.removeItem(STORAGE_KEYS.POST_HISTORY) } catch { /* silent */ }
+export function mapHistoryForAgents(postHistory, limit = 7) {
+  return postHistory.slice(0, limit).map(p => ({
+    fecha:                p.date,
+    titular_noticia_base: p.newsTitle,
+    formato_usado:        p.format,
+    angulo:               p.angle,
+    temas_cubiertos:      p.topics_covered ?? [],
+  }))
 }

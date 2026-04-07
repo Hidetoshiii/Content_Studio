@@ -2,16 +2,15 @@
  * useNews.js — Orquesta la búsqueda y curación de noticias.
  *
  * Flujo:
- *   1. fetchNews (newsService) — obtiene artículos crudos de NewsAPI / RSS
- *   2. analyzeNews (claudeService / Agente 1) — selecciona top 3 + banco
+ *   1. fetchNews (/api/fetch-news via newsService) — artículos crudos
+ *   2. analyzeNews (/api/analyze-news via claudeService — Agente 1)
  *   3. Actualiza newsStore con el top 3
- *   4. Persiste el banco de noticias en localStorage via useStorage
+ *   4. Persiste el banco de noticias en Supabase via useStorage
  *
- * NOTA: Se usa flushSync para garantizar que React renderice el estado de
- * carga ANTES de iniciar el fetch. Sin esto, React 18 automatic batching
- * puede agrupar setLoadingNews(true) + setLoadingNews(false) en un solo
- * render si la operación falla muy rápido, haciendo invisible la pantalla
- * de carga.
+ * Las API keys ya no se pasan desde el frontend — las gestiona el servidor.
+ *
+ * NOTA: flushSync garantiza que React renderice la pantalla de carga
+ * ANTES de iniciar operaciones async (React 18 automatic batching fix).
  */
 
 import { useCallback }  from 'react'
@@ -38,44 +37,38 @@ function useNews() {
     getSelectedNews,
   } = useNewsStore()
 
-  const { apiKeys, addNotification } = useAppStore()
+  const { addNotification } = useAppStore()
   const { appendNewsBank, getHistoryForAgents } = useStorage()
 
   /**
    * fetchAndAnalyzeNews — Pipeline completo del paso 1.
-   *
-   * flushSync fuerza a React a renderizar la pantalla de carga de inmediato,
-   * antes de que empiece cualquier operación async (fetch / Claude).
+   * flushSync fuerza render del estado de carga antes de cualquier await.
    */
   const fetchAndAnalyzeNews = useCallback(async () => {
-    // ── Forzar render del estado de carga ANTES de cualquier await ──────────
     flushSync(() => {
       setNewsError(null)
       setLoadingNews(true)
     })
 
     try {
-      // 1. Obtener artículos crudos (NewsData.io opcional)
-      const rawArticles = await fetchNews(apiKeys.newsdata)
+      // 1. Obtener artículos crudos desde el servidor
+      const rawArticles = await fetchNews()
 
       if (rawArticles.length === 0) {
         throw new Error('No se encontraron noticias disponibles en este momento.')
       }
 
-      // 2. Agente 1 — curación con Claude
+      // 2. Agente 1 — curación con Claude (server-side)
       const currentDate   = new Date().toISOString().split('T')[0]
       const recentHistory = getHistoryForAgents(7)
 
-      const result = await analyzeNews(
-        { rawArticles, currentDate, recentHistory },
-        apiKeys.anthropic,
-      )
+      const result = await analyzeNews({ rawArticles, currentDate, recentHistory })
 
       // 3. Actualizar store con el top 3 curado
       setTopNews(result.top_news ?? [])
       setWindowExpanded(result.ventana_ampliada ?? false)
 
-      // 4. Persistir banco de noticias en localStorage
+      // 4. Persistir banco de noticias en Supabase
       if (result.news_bank?.length > 0) {
         appendNewsBank(result.news_bank)
       }
@@ -93,7 +86,7 @@ function useNews() {
       if (err instanceof ClaudeServiceError) {
         switch (err.type) {
           case 'INVALID_API_KEY':
-            errorMessage = 'API key de Anthropic inválida. Revisa Configuración.'
+            errorMessage = 'Error de configuración del servidor. Contacta al administrador.'
             break
           case 'RATE_LIMIT':
             errorMessage = 'Límite de solicitudes alcanzado. Espera unos segundos.'
@@ -115,12 +108,12 @@ function useNews() {
     } finally {
       setLoadingNews(false)
     }
-  }, [apiKeys, appendNewsBank, getHistoryForAgents, setTopNews, setWindowExpanded, setLoadingNews, setNewsError, addNotification])
+  }, [appendNewsBank, getHistoryForAgents, setTopNews, setWindowExpanded, setLoadingNews, setNewsError, addNotification])
 
   /**
    * analyzeManualArticle — Procesa un artículo ingresado manualmente.
-   * Omite el fetch de noticias y envía el artículo directo al Agente 1.
-   * @param {{ title: string, source: string, url: string, published_at: string, description: string }[]} articles
+   * Omite el fetch y envía el artículo directo al Agente 1.
+   * @param {object[]} articles
    */
   const analyzeManualArticle = useCallback(async (articles) => {
     if (!articles?.length) return
@@ -134,10 +127,7 @@ function useNews() {
       const currentDate   = new Date().toISOString().split('T')[0]
       const recentHistory = getHistoryForAgents(7)
 
-      const result = await analyzeNews(
-        { rawArticles: articles, currentDate, recentHistory },
-        apiKeys.anthropic,
-      )
+      const result = await analyzeNews({ rawArticles: articles, currentDate, recentHistory })
 
       setTopNews(result.top_news ?? [])
       setWindowExpanded(result.ventana_ampliada ?? false)
@@ -156,7 +146,7 @@ function useNews() {
     } finally {
       setLoadingNews(false)
     }
-  }, [apiKeys.anthropic, getHistoryForAgents, setTopNews, setWindowExpanded, appendNewsBank, setLoadingNews, setNewsError])
+  }, [getHistoryForAgents, setTopNews, setWindowExpanded, appendNewsBank, setLoadingNews, setNewsError])
 
   return {
     topNews,

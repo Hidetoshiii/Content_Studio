@@ -4,7 +4,6 @@
 
 import { useState }   from 'react'
 import useNews        from '@/hooks/useNews'
-import useAppStore    from '@/stores/appStore'
 import NewsCard       from '@/components/news/NewsCard'
 import Button         from '@/components/ui/Button'
 import LoadingScreen  from '@/components/ui/LoadingScreen'
@@ -39,23 +38,10 @@ function Step1Discover({ onNewsSelected }) {
     selectNews,
   } = useNews()
 
-  const { hasValidApiKeys } = useAppStore()
   const [showManual, setShowManual] = useState(false)
 
   const handleContinue = () => {
     if (selectedNewsId) onNewsSelected()
-  }
-
-  // ── Guard: falta API key de Anthropic ──────────────────────────────────────
-  if (!hasValidApiKeys()) {
-    return (
-      <EmptyState
-        icon="⚙️"
-        title="Falta la API key de Anthropic"
-        description='Ve a Configuración y pega tu API key (empieza con "sk-ant-"). La key de NewsAPI es opcional.'
-        action={{ label: 'Ir a Configuración', onClick: () => window.location.href = '/configuracion' }}
-      />
-    )
   }
 
   // ── Pantalla de carga ──────────────────────────────────────────────────────

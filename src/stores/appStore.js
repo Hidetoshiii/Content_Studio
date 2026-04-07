@@ -2,14 +2,14 @@
  * appStore.js — Store global de la aplicación (Zustand).
  *
  * Responsabilidades:
- *   - API keys (Anthropic + NewsAPI)
  *   - Paso activo del flujo (1-5)
  *   - Errores y notificaciones globales
+ *
+ * Las API keys ya no se gestionan aquí — se configuran en Vercel
+ * como variables de entorno y nunca llegan al browser.
  */
 
 import { create } from 'zustand'
-import { getApiKeys, saveApiKeys } from '@/services/storageService'
-import { isValidAnthropicKey, isValidNewsApiKey, isValidNewsDataKey } from '@/utils/validators'
 
 /**
  * @typedef {'info' | 'success' | 'warning' | 'error'} NotificationType
@@ -25,9 +25,6 @@ import { isValidAnthropicKey, isValidNewsApiKey, isValidNewsDataKey } from '@/ut
 const useAppStore = create((set, get) => ({
   // ─── Estado ───────────────────────────────────────────────────────────────
 
-  /** @type {{ anthropic: string, newsdata: string }} */
-  apiKeys: getApiKeys(),   // Carga las keys guardadas al inicializar
-
   /** Paso activo del flujo principal (1 = Descubrir, ..., 5 = Publicar) */
   currentStep: 1,
 
@@ -36,41 +33,6 @@ const useAppStore = create((set, get) => ({
 
   /** @type {Notification[]} Cola de notificaciones */
   notifications: [],
-
-  // ─── API Keys ─────────────────────────────────────────────────────────────
-
-  /**
-   * Guarda una API key individual y persiste en localStorage.
-   * @param {'anthropic' | 'newsdata'} service
-   * @param {string} key
-   */
-  setApiKey: (service, key) => {
-    const updated = { ...get().apiKeys, [service]: key.trim() }
-    set({ apiKeys: updated })
-    saveApiKeys(updated)
-  },
-
-  /**
-   * Verifica si la API key de Anthropic está presente y válida.
-   * La key de NewsData.io es opcional — si no está, se usa el modo manual.
-   * @returns {boolean}
-   */
-  hasValidApiKeys: () => {
-    const { anthropic } = get().apiKeys
-    return isValidAnthropicKey(anthropic)
-  },
-
-  /**
-   * Verifica si una key específica es válida.
-   * @param {'anthropic' | 'newsapi' | 'newsdata'} service
-   * @returns {boolean}
-   */
-  isKeyValid: (service) => {
-    const key = get().apiKeys[service]
-    if (service === 'anthropic') return isValidAnthropicKey(key)
-    if (service === 'newsdata')  return isValidNewsDataKey(key)
-    return isValidNewsApiKey(key)
-  },
 
   // ─── Flujo de pasos ───────────────────────────────────────────────────────
 
@@ -103,7 +65,6 @@ const useAppStore = create((set, get) => ({
     set(state => ({
       notifications: [...state.notifications, { ...notification, id }],
     }))
-    // Auto-dismiss después de 4 segundos si se solicita
     if (notification.autoDismiss !== false) {
       setTimeout(() => get().dismissNotification(id), 4000)
     }

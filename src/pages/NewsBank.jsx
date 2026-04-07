@@ -73,7 +73,7 @@ function NewsBank() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-smoke tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-smoke tracking-tight">
             Banco de Noticias
           </h1>
           <p className="text-sm text-smoke-muted mt-1">

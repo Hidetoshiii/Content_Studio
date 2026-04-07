@@ -1,213 +1,101 @@
 /**
- * Settings.jsx — Configuración de API Keys.
- * Primera página que el usuario debe completar.
- * Las keys se validan con formato y se persisten en localStorage via appStore.
+ * Settings.jsx — Configuración de la cuenta.
+ *
+ * Las API keys (Anthropic, NewsData.io) son gestionadas centralmente
+ * por el equipo de FINLAT como variables de entorno en Vercel.
+ * Esta página solo muestra info de sesión y permite cerrar sesión.
  */
 
-import { useState } from 'react'
-import useAppStore from '@/stores/appStore'
+import { useAuth } from '@/contexts/AuthContext'
 import Button      from '@/components/ui/Button'
 import Card        from '@/components/ui/Card'
 
-function KeyField({ id, label, value, onChange, isValid, placeholder, hint, type = 'password' }) {
-  const [show, setShow] = useState(false)
-
-  return (
-    <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-medium text-smoke">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          id={id}
-          type={show ? 'text' : type}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          autoComplete="off"
-          spellCheck={false}
-          className={[
-            'w-full bg-gunmetal border rounded-lg px-4 py-2.5 text-sm text-smoke',
-            'placeholder:text-smoke-muted/50 pr-20',
-            'focus:outline-none focus:ring-2 focus:ring-oxford-light transition-colors',
-            value.length > 0
-              ? isValid
-                ? 'border-success/60'
-                : 'border-danger/60'
-              : 'border-oxford-light/30',
-          ].join(' ')}
-        />
-        <button
-          type="button"
-          onClick={() => setShow(v => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-smoke-muted hover:text-smoke transition-colors cursor-pointer"
-        >
-          {show ? 'Ocultar' : 'Mostrar'}
-        </button>
-      </div>
-      <div className="flex items-center gap-2 min-h-[18px]">
-        {value.length > 0 && (
-          <span className={`text-xs font-medium ${isValid ? 'text-success' : 'text-danger'}`}>
-            {isValid ? '✓ Formato válido' : '✗ Formato inválido'}
-          </span>
-        )}
-        {hint && !value.length && (
-          <span className="text-xs text-smoke-muted">{hint}</span>
-        )}
-      </div>
-    </div>
-  )
-}
-
 function Settings() {
-  const { apiKeys, setApiKey, isKeyValid, addNotification } = useAppStore()
-  const [anthropic, setAnthropic] = useState(apiKeys.anthropic ?? '')
-  const [newsdata,  setNewsdata]  = useState(apiKeys.newsdata  ?? '')
-  const [saved,     setSaved]     = useState(false)
+  const { user, signOut } = useAuth()
 
-  const anthropicValid = isKeyValid('anthropic')
-  const newsdataValid  = isKeyValid('newsdata')
-  const bothValid      = anthropicValid && newsdataValid
-
-  const handleSave = () => {
-    setApiKey('anthropic', anthropic)
-    setApiKey('newsdata',  newsdata)
-    setSaved(true)
-    addNotification({ type: 'success', message: 'API keys guardadas correctamente.' })
-    setTimeout(() => setSaved(false), 3000)
+  const handleSignOut = async () => {
+    await signOut()
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-10 space-y-8 animate-fade-in">
+    <div className="max-w-2xl mx-auto px-4 py-6 sm:px-6 sm:py-10 space-y-8 animate-fade-in">
 
       {/* Header */}
       <div>
         <h1 className="text-2xl font-extrabold text-smoke">Configuración</h1>
         <p className="text-sm text-smoke-muted mt-1">
-          Ingresa tus API keys para activar la app. Se guardan localmente en tu navegador.
+          Cuenta y ajustes de la herramienta interna de FINLAT CAPITAL.
         </p>
       </div>
 
-      {/* Estado general */}
-      {!bothValid && (
-        <Card padding="md" className="border-warning/30 bg-warning/5">
-          <div className="flex gap-3 items-start">
-            <span className="text-warning text-lg shrink-0">⚠</span>
-            <div>
-              <p className="text-sm font-medium text-smoke">Configuración incompleta</p>
-              <p className="text-xs text-smoke-muted mt-0.5">
-                Necesitas ambas API keys para usar la app. El resto de las páginas estarán disponibles una vez configuradas.
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {bothValid && (
-        <Card padding="md" className="border-success/30 bg-success/5">
-          <div className="flex gap-3 items-start">
-            <span className="text-success text-lg shrink-0">✓</span>
-            <div>
-              <p className="text-sm font-medium text-smoke">Todo listo</p>
-              <p className="text-xs text-smoke-muted mt-0.5">
-                Ambas API keys están configuradas. Puedes ir al Dashboard y generar tu primer post.
-              </p>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Anthropic */}
+      {/* Sesión activa */}
       <Card padding="lg" className="space-y-4">
         <div className="flex items-center gap-3 pb-3 border-b border-oxford-light/20">
-          <div className="w-8 h-8 rounded-lg bg-gunmetal flex items-center justify-center text-sm shrink-0">🤖</div>
+          <div className="w-8 h-8 rounded-lg bg-gunmetal flex items-center justify-center text-sm shrink-0">👤</div>
           <div>
-            <h2 className="text-sm font-semibold text-smoke">Anthropic (Claude API)</h2>
+            <h2 className="text-sm font-semibold text-smoke">Sesión activa</h2>
+            <p className="text-xs text-smoke-muted">Usuario autenticado en FINLAT Content Studio</p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-smoke-muted">Email</span>
+            <span className="text-sm font-medium text-smoke">{user?.email ?? '—'}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-smoke-muted">Último acceso</span>
+            <span className="text-sm font-medium text-smoke">
+              {user?.last_sign_in_at
+                ? new Date(user.last_sign_in_at).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' })
+                : '—'}
+            </span>
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <Button variant="secondary" size="md" onClick={handleSignOut}>
+            Cerrar sesión
+          </Button>
+        </div>
+      </Card>
+
+      {/* Credenciales de IA */}
+      <Card padding="lg" className="space-y-4">
+        <div className="flex items-center gap-3 pb-3 border-b border-oxford-light/20">
+          <div className="w-8 h-8 rounded-lg bg-gunmetal flex items-center justify-center text-sm shrink-0">🔐</div>
+          <div>
+            <h2 className="text-sm font-semibold text-smoke">Credenciales de IA</h2>
             <p className="text-xs text-smoke-muted">
-              Usada para los 3 agentes de IA — curación, redacción y análisis.
+              Gestionadas centralmente por el equipo técnico de FINLAT
             </p>
           </div>
         </div>
 
-        <KeyField
-          id="anthropic-key"
-          label="API Key de Anthropic"
-          value={anthropic}
-          onChange={(v) => { setAnthropic(v); setApiKey('anthropic', v) }}
-          isValid={anthropicValid}
-          placeholder="sk-ant-api03-..."
-          hint='Comienza con "sk-ant-". Obtener en console.anthropic.com'
-        />
-
-        <a
-          href="https://console.anthropic.com/settings/keys"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-xs text-smoke-muted hover:text-smoke transition-colors"
-        >
-          Obtener API key en Anthropic Console →
-        </a>
-      </Card>
-
-      {/* NewsData.io */}
-      <Card padding="lg" className="space-y-4">
-        <div className="flex items-center gap-3 pb-3 border-b border-oxford-light/20">
-          <div className="w-8 h-8 rounded-lg bg-gunmetal flex items-center justify-center text-sm shrink-0">📰</div>
-          <div>
-            <h2 className="text-sm font-semibold text-smoke">NewsData.io</h2>
-            <p className="text-xs text-smoke-muted">
-              Para buscar noticias de Perú en tiempo real. Plan gratuito: 200 requests/día.
-            </p>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-success shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-smoke">Anthropic (Claude API)</p>
+              <p className="text-xs text-smoke-muted">Configurada como variable de entorno en el servidor</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-success shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-smoke">NewsData.io</p>
+              <p className="text-xs text-smoke-muted">Configurada como variable de entorno en el servidor</p>
+            </div>
           </div>
         </div>
-
-        <KeyField
-          id="newsdata-key"
-          label="API Key de NewsData.io"
-          value={newsdata}
-          onChange={(v) => { setNewsdata(v); setApiKey('newsdata', v) }}
-          isValid={newsdataValid}
-          placeholder="pub_..."
-          hint='Comienza con "pub_". Obtener gratis en newsdata.io'
-        />
-
-        <div className="flex items-center gap-4">
-          <a
-            href="https://newsdata.io/register"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs text-smoke-muted hover:text-smoke transition-colors"
-          >
-            Obtener API key gratuita en NewsData.io →
-          </a>
-          <span className="text-xs text-smoke-muted">|</span>
-          <span className="text-xs text-smoke-muted">
-            Sin key → usa modo manual en el Dashboard
-          </span>
-        </div>
       </Card>
 
-      {/* Guardar */}
-      <div className="flex items-center gap-4">
-        <Button
-          variant={saved ? 'success' : 'primary'}
-          size="lg"
-          onClick={handleSave}
-        >
-          {saved ? '✓ Guardado' : 'Guardar configuración'}
-        </Button>
-        <p className="text-xs text-smoke-muted">
-          Las keys se guardan localmente en tu navegador y nunca se envían a terceros.
-        </p>
-      </div>
-
-      {/* Info seguridad */}
+      {/* Info de seguridad */}
       <Card padding="md" className="border-oxford-light/20 bg-transparent">
         <p className="text-xs text-smoke-muted leading-relaxed">
-          <strong className="text-smoke">Seguridad:</strong> Esta es una herramienta interna.
-          Las API keys se almacenan en el localStorage de tu navegador y solo se usan para
-          llamadas directas a la API de Anthropic y NewsData.io desde tu máquina.
-          Nunca se envían a servidores de FINLAT ni a terceros.
+          <strong className="text-smoke">Seguridad:</strong> Las API keys nunca se transmiten
+          al navegador. Todas las llamadas a Claude y NewsData.io se ejecutan en servidores
+          de Vercel donde las keys están almacenadas como variables de entorno cifradas.
         </p>
       </Card>
 

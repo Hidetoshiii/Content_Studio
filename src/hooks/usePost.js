@@ -1,12 +1,12 @@
 /**
  * usePost.js — Orquesta la generación, análisis y guardado del post.
  *
- * Flujo paso 2→3: generatePost  (Agente 2) → setCurrentPost
- * Flujo paso 3→4: analyzeAndImprove (Agente 3) → setAnalysisResult
- * Flujo paso 5:   savePost → historial localStorage
+ * Flujo paso 2→3: generatePost  (Agente 2, /api/generate-post)
+ * Flujo paso 3→4: analyzeAndImprove (Agente 3, /api/analyze-improve)
+ * Flujo paso 5:   saveCurrentPost → Supabase via useStorage
  *
- * NOTA: flushSync en cada acción async garantiza que React 18 renderice
- * la pantalla de carga ANTES de iniciar la llamada a la API de Claude.
+ * Las API keys ya no se pasan desde el frontend — las gestiona el servidor.
+ * flushSync en cada acción async garantiza pantalla de carga visible (React 18).
  */
 
 import { useCallback } from 'react'
@@ -18,14 +18,14 @@ import useStorage      from './useStorage'
 
 function usePost() {
   const store = usePostStore()
-  const { apiKeys, addNotification, completeCurrentStep } = useAppStore()
+  const { addNotification, completeCurrentStep } = useAppStore()
   const { savePost, getHistoryForAgents } = useStorage()
 
-  // ─── Mapeo de errores ─────────────────────────────────────────────────────
+  // ─── Mapeo de errores ───────────────────────────────────────────────────
   const mapClaudeError = (err) => {
     if (!(err instanceof ClaudeServiceError)) return err.message ?? 'Error desconocido.'
     switch (err.type) {
-      case 'INVALID_API_KEY':   return 'API key de Anthropic inválida. Revisa tu configuración.'
+      case 'INVALID_API_KEY':   return 'Error de configuración del servidor. Contacta al administrador.'
       case 'RATE_LIMIT':        return 'Límite de solicitudes alcanzado. Espera unos segundos.'
       case 'JSON_PARSE_FAILED': return 'Error al interpretar la respuesta. Intenta nuevamente.'
       case 'NETWORK_ERROR':     return 'Sin conexión. Verifica tu red e intenta nuevamente.'
@@ -33,11 +33,10 @@ function usePost() {
     }
   }
 
-  // ─── Acción: Generar Post (Paso 2 → 3) ────────────────────────────────────
+  // ─── Acción: Generar Post (Paso 2 → 3) ─────────────────────────────────
   const generatePostAction = useCallback(async (newsItem) => {
     if (!newsItem) return
 
-    // flushSync: garantiza que la pantalla de carga se renderice antes del await
     flushSync(() => {
       store.setGenerateError(null)
       store.setGeneratingPost(true)
@@ -46,15 +45,12 @@ function usePost() {
     try {
       const recentHistory = getHistoryForAgents(7)
 
-      const result = await generatePost(
-        {
-          newsItem,
-          format:      store.format,
-          lengthTier:  store.lengthTier ?? 'medio',
-          recentHistory,
-        },
-        apiKeys.anthropic,
-      )
+      const result = await generatePost({
+        newsItem,
+        format:      store.format,
+        lengthTier:  store.lengthTier ?? 'medio',
+        recentHistory,
+      })
 
       store.setCurrentPost(result)
       completeCurrentStep()
@@ -71,29 +67,25 @@ function usePost() {
     } finally {
       store.setGeneratingPost(false)
     }
-  }, [store, apiKeys.anthropic, getHistoryForAgents, addNotification, completeCurrentStep])
+  }, [store, getHistoryForAgents, addNotification, completeCurrentStep])
 
-  // ─── Acción: Analizar y Mejorar Post (Paso 3 → 4) ─────────────────────────
+  // ─── Acción: Analizar y Mejorar Post (Paso 3 → 4) ──────────────────────
   const analyzePostAction = useCallback(async () => {
     const { currentPost, format, lengthTier } = store
     if (!currentPost?.full_post) return
 
-    // flushSync: garantiza que la pantalla de carga se renderice antes del await
     flushSync(() => {
       store.setAnalyzeError(null)
       store.setAnalyzing(true)
     })
 
     try {
-      const result = await analyzeAndImprove(
-        {
-          postText:       currentPost.full_post,
-          format:         format ?? 'informativo',
-          lengthTier:     lengthTier ?? 'medio',
-          characterCount: currentPost.character_count ?? currentPost.full_post.length,
-        },
-        apiKeys.anthropic,
-      )
+      const result = await analyzeAndImprove({
+        postText:       currentPost.full_post,
+        format:         format ?? 'informativo',
+        lengthTier:     lengthTier ?? 'medio',
+        characterCount: currentPost.character_count ?? currentPost.full_post.length,
+      })
 
       store.setAnalysisResult(result)
       completeCurrentStep()
@@ -103,10 +95,10 @@ function usePost() {
     } finally {
       store.setAnalyzing(false)
     }
-  }, [store, apiKeys.anthropic, completeCurrentStep])
+  }, [store, completeCurrentStep])
 
-  // ─── Acción: Guardar post en historial (Paso 5) ───────────────────────────
-  const saveCurrentPost = useCallback((newsItem) => {
+  // ─── Acción: Guardar post en historial (Paso 5) ─────────────────────────
+  const saveCurrentPost = useCallback(async (newsItem) => {
     const { currentPost, format, lengthTier, getFinalPostText } = store
     if (!currentPost || !newsItem) return
 
@@ -121,7 +113,7 @@ function usePost() {
       topics_covered: [newsItem.title, ...(newsItem.key_data ? [newsItem.key_data] : [])],
     }
 
-    savePost(postRecord)
+    await savePost(postRecord)
 
     addNotification({
       type:    'success',

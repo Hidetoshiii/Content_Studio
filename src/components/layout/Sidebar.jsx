@@ -9,13 +9,13 @@ const NAV_ITEMS = [
 
 /**
  * Sidebar — Navegación lateral fija.
- * Usa colores FINLAT dark hardcodeados para mantener la identidad de marca
- * independientemente del tema del área de contenido.
+ * Visible solo en md+ (≥ 768px). En mobile la reemplaza BottomNav.
+ * Colores FINLAT dark hardcodeados para mantener identidad de marca.
  */
 function Sidebar() {
   return (
     <aside
-      className="w-60 min-h-screen flex flex-col shrink-0"
+      className="w-60 min-h-screen hidden md:flex flex-col shrink-0"
       style={{ backgroundColor: '#101c26' }}
     >
       {/* Logo FINLAT */}
@@ -36,17 +36,17 @@ function Sidebar() {
             to={to}
             end={to === '/'}
             style={({ isActive }) => ({
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              padding: '10px 12px',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              textDecoration: 'none',
-              transition: 'background 150ms, color 150ms',
+              display:         'flex',
+              alignItems:      'center',
+              gap:             '10px',
+              padding:         '10px 12px',
+              borderRadius:    '8px',
+              fontSize:        '14px',
+              fontWeight:      '500',
+              textDecoration:  'none',
+              transition:      'background 150ms, color 150ms',
               backgroundColor: isActive ? '#224469' : 'transparent',
-              color: isActive ? '#FFFFFF' : '#9baab8',
+              color:           isActive ? '#FFFFFF' : '#9baab8',
             })}
             onMouseEnter={(e) => {
               if (!e.currentTarget.getAttribute('aria-current')) {

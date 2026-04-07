@@ -68,12 +68,12 @@ function DiffViewer({ originalText, improvedText, onAccept, onRevert }) {
         </p>
       )}
 
-      {/* Acciones */}
-      <div className="flex gap-3 justify-end">
-        <Button variant="ghost" size="md" onClick={onRevert}>
+      {/* Acciones — columna en mobile, fila en desktop */}
+      <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+        <Button variant="ghost" size="md" onClick={onRevert} className="w-full sm:w-auto">
           ↩ Volver al original
         </Button>
-        <Button variant="success" size="md" onClick={onAccept}>
+        <Button variant="success" size="md" onClick={onAccept} className="w-full sm:w-auto">
           ✓ Aceptar versión mejorada
         </Button>
       </div>

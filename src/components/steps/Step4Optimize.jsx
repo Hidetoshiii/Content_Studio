@@ -50,7 +50,7 @@ function Step4Optimize({ onPublish }) {
     <div className="space-y-5">
 
       {/* Header + toggle de vista */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-smoke">Análisis de Engagement</h2>
           <p className="text-sm text-smoke-muted mt-0.5">
@@ -59,7 +59,7 @@ function Step4Optimize({ onPublish }) {
         </div>
 
         {diffMode && (
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-2">
             <Button
               variant={view === 'analysis' ? 'secondary' : 'ghost'}
               size="sm"
@@ -87,13 +87,13 @@ function Step4Optimize({ onPublish }) {
           />
 
           {/* Botón continuar sin mejorar */}
-          <div className="flex items-center justify-between pt-2 border-t border-oxford-light/15">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 border-t border-oxford-light/15">
             <p className="text-xs text-smoke-muted">
               {diffMode
                 ? 'Ya aplicaste las mejoras. Puedes continuar.'
                 : 'Puedes publicar con el post actual o aplicar las mejoras primero.'}
             </p>
-            <Button variant="primary" size="md" onClick={onPublish}>
+            <Button variant="primary" size="md" onClick={onPublish} className="w-full sm:w-auto">
               Continuar →
             </Button>
           </div>

@@ -17,21 +17,7 @@ export default defineConfig({
     },
   },
 
-  server: {
-    proxy: {
-      // Único proxy: NewsAPI (resuelve CORS en desarrollo)
-      // Los feeds RSS se obtienen via allorigins.win directamente desde el
-      // browser — sin proxy Vite, sin restart necesario.
-      '/newsapi': {
-        target:       'https://newsapi.org',
-        changeOrigin: true,
-        rewrite:      (path) => path.replace(/^\/newsapi/, ''),
-      },
-      '/newsdata': {
-        target:       'https://newsdata.io',
-        changeOrigin: true,
-        rewrite:      (path) => path.replace(/^\/newsdata/, ''),
-      },
-    },
-  },
+  // Los proxies de NewsAPI y NewsData.io se eliminaron.
+  // Las llamadas externas ahora van a través de las Vercel API Routes (/api/*),
+  // que en desarrollo local se sirven con `vercel dev`.
 })

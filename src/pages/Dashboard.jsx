@@ -85,11 +85,11 @@ function Dashboard() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 px-4 py-6 sm:px-6">
+    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 px-4 py-5 sm:px-6 sm:py-6">
 
       {/* Título de página */}
       <div>
-        <h1 className="text-2xl font-extrabold text-smoke tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-extrabold text-smoke tracking-tight">
           Content Studio
         </h1>
         <p className="text-sm text-smoke-muted mt-1">

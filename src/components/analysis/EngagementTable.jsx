@@ -59,7 +59,8 @@ function EngagementTable({ analysis, onApplyImprovements }) {
       {/* Recomendaciones */}
       {analysis.recommendations?.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-3">
+          {/* Header: stacked en mobile, row en desktop */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
             <h3 className="text-sm font-semibold text-smoke">
               Recomendaciones ({analysis.recommendations.length})
             </h3>
@@ -67,6 +68,7 @@ function EngagementTable({ analysis, onApplyImprovements }) {
               variant="primary"
               size="sm"
               onClick={onApplyImprovements}
+              className="w-full sm:w-auto"
             >
               Aplicar todas las mejoras →
             </Button>
