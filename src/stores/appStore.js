@@ -9,7 +9,7 @@
 
 import { create } from 'zustand'
 import { getApiKeys, saveApiKeys } from '@/services/storageService'
-import { isValidAnthropicKey, isValidNewsApiKey } from '@/utils/validators'
+import { isValidAnthropicKey, isValidNewsApiKey, isValidNewsDataKey } from '@/utils/validators'
 
 /**
  * @typedef {'info' | 'success' | 'warning' | 'error'} NotificationType
@@ -25,7 +25,7 @@ import { isValidAnthropicKey, isValidNewsApiKey } from '@/utils/validators'
 const useAppStore = create((set, get) => ({
   // ─── Estado ───────────────────────────────────────────────────────────────
 
-  /** @type {{ anthropic: string, newsapi: string }} */
+  /** @type {{ anthropic: string, newsdata: string }} */
   apiKeys: getApiKeys(),   // Carga las keys guardadas al inicializar
 
   /** Paso activo del flujo principal (1 = Descubrir, ..., 5 = Publicar) */
@@ -41,7 +41,7 @@ const useAppStore = create((set, get) => ({
 
   /**
    * Guarda una API key individual y persiste en localStorage.
-   * @param {'anthropic' | 'newsapi'} service
+   * @param {'anthropic' | 'newsdata'} service
    * @param {string} key
    */
   setApiKey: (service, key) => {
@@ -52,7 +52,7 @@ const useAppStore = create((set, get) => ({
 
   /**
    * Verifica si la API key de Anthropic está presente y válida.
-   * La key de NewsAPI es opcional — si no está, se usan solo feeds RSS.
+   * La key de NewsData.io es opcional — si no está, se usa el modo manual.
    * @returns {boolean}
    */
   hasValidApiKeys: () => {
@@ -62,14 +62,14 @@ const useAppStore = create((set, get) => ({
 
   /**
    * Verifica si una key específica es válida.
-   * @param {'anthropic' | 'newsapi'} service
+   * @param {'anthropic' | 'newsapi' | 'newsdata'} service
    * @returns {boolean}
    */
   isKeyValid: (service) => {
     const key = get().apiKeys[service]
-    return service === 'anthropic'
-      ? isValidAnthropicKey(key)
-      : isValidNewsApiKey(key)
+    if (service === 'anthropic') return isValidAnthropicKey(key)
+    if (service === 'newsdata')  return isValidNewsDataKey(key)
+    return isValidNewsApiKey(key)
   },
 
   // ─── Flujo de pasos ───────────────────────────────────────────────────────

@@ -62,16 +62,16 @@ function KeyField({ id, label, value, onChange, isValid, placeholder, hint, type
 function Settings() {
   const { apiKeys, setApiKey, isKeyValid, addNotification } = useAppStore()
   const [anthropic, setAnthropic] = useState(apiKeys.anthropic ?? '')
-  const [newsapi,   setNewsapi]   = useState(apiKeys.newsapi   ?? '')
+  const [newsdata,  setNewsdata]  = useState(apiKeys.newsdata  ?? '')
   const [saved,     setSaved]     = useState(false)
 
   const anthropicValid = isKeyValid('anthropic')
-  const newsapiValid   = isKeyValid('newsapi')
-  const bothValid      = anthropicValid && newsapiValid
+  const newsdataValid  = isKeyValid('newsdata')
+  const bothValid      = anthropicValid && newsdataValid
 
   const handleSave = () => {
     setApiKey('anthropic', anthropic)
-    setApiKey('newsapi',   newsapi)
+    setApiKey('newsdata',  newsdata)
     setSaved(true)
     addNotification({ type: 'success', message: 'API keys guardadas correctamente.' })
     setTimeout(() => setSaved(false), 3000)
@@ -149,41 +149,40 @@ function Settings() {
         </a>
       </Card>
 
-      {/* NewsAPI */}
+      {/* NewsData.io */}
       <Card padding="lg" className="space-y-4">
         <div className="flex items-center gap-3 pb-3 border-b border-oxford-light/20">
           <div className="w-8 h-8 rounded-lg bg-gunmetal flex items-center justify-center text-sm shrink-0">📰</div>
           <div>
-            <h2 className="text-sm font-semibold text-smoke">NewsAPI</h2>
+            <h2 className="text-sm font-semibold text-smoke">NewsData.io</h2>
             <p className="text-xs text-smoke-muted">
-              Usada para obtener noticias financieras en tiempo real.
-              Si no tienes key, la app usa RSS feeds como fallback.
+              Para buscar noticias de Perú en tiempo real. Plan gratuito: 200 requests/día.
             </p>
           </div>
         </div>
 
         <KeyField
-          id="newsapi-key"
-          label="API Key de NewsAPI"
-          value={newsapi}
-          onChange={(v) => { setNewsapi(v); setApiKey('newsapi', v) }}
-          isValid={newsapiValid}
-          placeholder="a1b2c3d4e5f6..."
-          hint="32 caracteres hexadecimales. Obtener en newsapi.org"
+          id="newsdata-key"
+          label="API Key de NewsData.io"
+          value={newsdata}
+          onChange={(v) => { setNewsdata(v); setApiKey('newsdata', v) }}
+          isValid={newsdataValid}
+          placeholder="pub_..."
+          hint='Comienza con "pub_". Obtener gratis en newsdata.io'
         />
 
         <div className="flex items-center gap-4">
           <a
-            href="https://newsapi.org/register"
+            href="https://newsdata.io/register"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-xs text-smoke-muted hover:text-smoke transition-colors"
           >
-            Obtener API key gratuita en NewsAPI →
+            Obtener API key gratuita en NewsData.io →
           </a>
           <span className="text-xs text-smoke-muted">|</span>
           <span className="text-xs text-smoke-muted">
-            Sin key → se usan feeds RSS de Gestión, El Comercio y Reuters
+            Sin key → usa modo manual en el Dashboard
           </span>
         </div>
       </Card>
@@ -207,7 +206,7 @@ function Settings() {
         <p className="text-xs text-smoke-muted leading-relaxed">
           <strong className="text-smoke">Seguridad:</strong> Esta es una herramienta interna.
           Las API keys se almacenan en el localStorage de tu navegador y solo se usan para
-          llamadas directas a la API de Anthropic y NewsAPI desde tu máquina.
+          llamadas directas a la API de Anthropic y NewsData.io desde tu máquina.
           Nunca se envían a servidores de FINLAT ni a terceros.
         </p>
       </Card>

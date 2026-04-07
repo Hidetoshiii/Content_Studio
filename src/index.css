@@ -1,5 +1,6 @@
 /* ─── Tailwind base ─────────────────────────────────────────────────────── */
 @import "tailwindcss";
+@config "../tailwind.config.js";
 
 /* ─── Variables CSS globales FINLAT CAPITAL — Tema Claro ─────────────────── */
 :root {

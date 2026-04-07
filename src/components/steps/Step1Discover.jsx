@@ -2,6 +2,7 @@
  * Step1Discover — Paso 1: Buscar y seleccionar noticia.
  */
 
+import { useState }   from 'react'
 import useNews        from '@/hooks/useNews'
 import useAppStore    from '@/stores/appStore'
 import NewsCard       from '@/components/news/NewsCard'
@@ -9,13 +10,14 @@ import Button         from '@/components/ui/Button'
 import LoadingScreen  from '@/components/ui/LoadingScreen'
 import ErrorBanner    from '@/components/ui/ErrorBanner'
 import EmptyState     from '@/components/ui/EmptyState'
+import ManualNewsInput from '@/components/news/ManualNewsInput'
 
 const LOADING_PHASES = [
-  'Conectando con fuentes de noticias',
-  'Descargando feed de BBC Mundo',
-  'Descargando feed de Gestión Perú',
-  'Descargando feed de RPP Noticias',
-  'Filtrando artículos financieros relevantes',
+  'Conectando con NewsData.io',
+  'Obteniendo noticias financieras de Perú',
+  'Obteniendo noticias financieras de LATAM',
+  'Filtrando artículos relevantes',
+  'Eliminando duplicados',
   'Enviando noticias al Agente Curador',
   'Evaluando relevancia para FINLAT',
   'Priorizando las 3 mejores noticias',
@@ -33,10 +35,12 @@ function Step1Discover({ onNewsSelected }) {
     isLoadingNews,
     newsError,
     fetchAndAnalyzeNews,
+    analyzeManualArticle,
     selectNews,
   } = useNews()
 
   const { hasValidApiKeys } = useAppStore()
+  const [showManual, setShowManual] = useState(false)
 
   const handleContinue = () => {
     if (selectedNewsId) onNewsSelected()
@@ -101,6 +105,7 @@ function Step1Discover({ onNewsSelected }) {
         >
           {topNews.length > 0 ? '↺ Actualizar' : 'Buscar Noticias'}
         </Button>
+        <Button variant="secondary" size="md" onClick={() => setShowManual(v => !v)} className="shrink-0">{showManual ? '← Volver' : 'Ingresar manualmente'}</Button>
       </div>
 
       {/* Aviso ventana ampliada */}
@@ -120,6 +125,9 @@ function Step1Discover({ onNewsSelected }) {
           onRetry={fetchAndAnalyzeNews}
         />
       )}
+
+      {/* Entrada manual */}
+      {showManual && <ManualNewsInput onSubmit={analyzeManualArticle} isLoading={isLoadingNews} />}
 
       {/* Noticias */}
       {topNews.length > 0 && (

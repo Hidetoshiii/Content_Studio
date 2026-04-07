@@ -62,3 +62,13 @@ export function isValidNewsItem(item) {
 export function isValidPost(postText) {
   return typeof postText === 'string' && postText.trim().length >= 100
 }
+
+/**
+ * isValidNewsDataKey — Valida formato de API key de NewsData.io
+ * Las keys de NewsData.io empiezan con "pub_" seguido de caracteres alfanuméricos.
+ * @param {string} key
+ * @returns {boolean}
+ */
+export function isValidNewsDataKey(key) {
+  return typeof key === 'string' && key.startsWith('pub_') && key.length > 10
+}

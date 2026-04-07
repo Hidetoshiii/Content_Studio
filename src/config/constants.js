@@ -36,6 +36,16 @@ export const NEWS_KEYWORDS = [
   'fintech latinoamerica',
   'finanzas corporativas Peru',
   'LATAM fusiones adquisiciones',
+  'Perú',
+  'economía',
+  'BCRP',
+  'empresas',
+  'inversión',
+  'finanzas',
+  'bancos',
+  'mercados',
+  'negocios',
+  'Latinoamérica',
 ]
 
 // ─── Parámetros NewsAPI ───────────────────────────────────────────────────

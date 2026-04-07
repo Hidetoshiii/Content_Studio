@@ -55,8 +55,8 @@ function useNews() {
     })
 
     try {
-      // 1. Obtener artículos crudos (RSS + NewsAPI opcional)
-      const rawArticles = await fetchNews(apiKeys.newsapi)
+      // 1. Obtener artículos crudos (NewsData.io opcional)
+      const rawArticles = await fetchNews(apiKeys.newsdata)
 
       if (rawArticles.length === 0) {
         throw new Error('No se encontraron noticias disponibles en este momento.')
@@ -117,6 +117,47 @@ function useNews() {
     }
   }, [apiKeys, appendNewsBank, getHistoryForAgents, setTopNews, setWindowExpanded, setLoadingNews, setNewsError, addNotification])
 
+  /**
+   * analyzeManualArticle — Procesa un artículo ingresado manualmente.
+   * Omite el fetch de noticias y envía el artículo directo al Agente 1.
+   * @param {{ title: string, source: string, url: string, published_at: string, description: string }[]} articles
+   */
+  const analyzeManualArticle = useCallback(async (articles) => {
+    if (!articles?.length) return
+
+    flushSync(() => {
+      setLoadingNews(true)
+      setNewsError(null)
+    })
+
+    try {
+      const currentDate   = new Date().toISOString().split('T')[0]
+      const recentHistory = getHistoryForAgents(7)
+
+      const result = await analyzeNews(
+        { rawArticles: articles, currentDate, recentHistory },
+        apiKeys.anthropic,
+      )
+
+      setTopNews(result.top_news ?? [])
+      setWindowExpanded(result.ventana_ampliada ?? false)
+
+      if (result.news_bank?.length > 0) {
+        appendNewsBank(result.news_bank)
+      }
+    } catch (err) {
+      let errorMessage = 'Error al procesar la noticia. Intenta nuevamente.'
+      if (err instanceof ClaudeServiceError) {
+        errorMessage = err.message
+      } else if (err?.message) {
+        errorMessage = err.message
+      }
+      setNewsError(errorMessage)
+    } finally {
+      setLoadingNews(false)
+    }
+  }, [apiKeys.anthropic, getHistoryForAgents, setTopNews, setWindowExpanded, appendNewsBank, setLoadingNews, setNewsError])
+
   return {
     topNews,
     selectedNewsId,
@@ -124,6 +165,7 @@ function useNews() {
     isLoadingNews,
     newsError,
     fetchAndAnalyzeNews,
+    analyzeManualArticle,
     selectNews,
     clearTopNews,
     getSelectedNews,

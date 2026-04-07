@@ -46,12 +46,12 @@ function safeSet(key, value) {
 // ─── API Keys ────────────────────────────────────────────────────────────────
 
 /**
- * @typedef {{ anthropic: string, newsapi: string }} ApiKeys
+ * @typedef {{ anthropic: string, newsdata: string }} ApiKeys
  */
 
 /** @returns {ApiKeys} */
 export function getApiKeys() {
-  return safeGet(STORAGE_KEYS.API_KEYS, { anthropic: '', newsapi: '' })
+  return safeGet(STORAGE_KEYS.API_KEYS, { anthropic: '', newsdata: '' })
 }
 
 /** @param {ApiKeys} keys */

@@ -27,6 +27,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite:      (path) => path.replace(/^\/newsapi/, ''),
       },
+      '/newsdata': {
+        target:       'https://newsdata.io',
+        changeOrigin: true,
+        rewrite:      (path) => path.replace(/^\/newsdata/, ''),
+      },
     },
   },
 })
