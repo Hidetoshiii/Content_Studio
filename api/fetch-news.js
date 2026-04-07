@@ -7,7 +7,7 @@
  * Degradación elegante:
  *   - Sin key configurada  → devuelve [] (modo manual en UI)
  *   - Llamadas fallan      → devuelve [] con header X-News-Error (modo manual)
- *   - Todo ok              → devuelve hasta 50 artículos mezclados
+ *   - Todo ok              → devuelve hasta 20 artículos mezclados (10 Perú + 10 LATAM)
  */
 
 function normalizeArticle(a) {
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
   // ── Llamada 1: Noticias de Perú ──────────────────────────────────────────
   try {
     const r1 = await fetch(
-      `https://newsdata.io/api/1/news?apikey=${apiKey}&country=pe&language=es&category=business&timeframe=48&size=50`,
+      `https://newsdata.io/api/1/news?apikey=${apiKey}&country=pe&language=es&category=business&timeframe=48&size=10`,
     )
     const d1 = await r1.json()
     console.info('[fetch-news] NewsData.io Perú status:', d1.status, '| code:', d1.code ?? 'ok')
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
   try {
     const q  = encodeURIComponent('economía OR finanzas OR inversión OR mercados OR banco')
     const r2 = await fetch(
-      `https://newsdata.io/api/1/news?apikey=${apiKey}&language=es&category=business&q=${q}&timeframe=48&size=20`,
+      `https://newsdata.io/api/1/news?apikey=${apiKey}&language=es&category=business&q=${q}&timeframe=48&size=10`,
     )
     const d2 = await r2.json()
     console.info('[fetch-news] NewsData.io LATAM status:', d2.status, '| code:', d2.code ?? 'ok')
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
   }
 
   const valid    = results.filter(a => a.title?.trim().length > 5 && a.url?.startsWith('http'))
-  const shuffled = valid.sort(() => Math.random() - 0.5).slice(0, 50)
+  const shuffled = valid.sort(() => Math.random() - 0.5).slice(0, 20)
   console.info(`[fetch-news] Total enviado al cliente: ${shuffled.length}`)
   return res.status(200).json(shuffled)
 }
