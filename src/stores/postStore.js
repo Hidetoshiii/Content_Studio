@@ -233,19 +233,31 @@ const usePostStore = create((set, get) => ({
   // ─── Selectores ───────────────────────────────────────────────────────────
 
   /**
-   * Devuelve el texto final del post listo para copiar a LinkedIn,
-   * incluyendo solo los hashtags seleccionados por el usuario.
-   * @returns {string}
-   */
-  getFinalPostText: () => {
-    const { currentPost } = get()
-    if (!currentPost) return ''
-    const { full_post, selectedHashtags } = currentPost
-    const hashtagsText = selectedHashtags.length > 0
-      ? '\n\n' + selectedHashtags.join(' ')
-      : ''
-    return full_post + hashtagsText
-  },
+     * Devuelve el texto final del post listo para copiar a LinkedIn,
+     * limpiando las citas de investigación, quitando hashtags duplicados
+     * y agregando solo los hashtags seleccionados por el usuario.
+     * @returns {string}
+     */
+    getFinalPostText: () => {
+      const { currentPost } = get()
+      if (!currentPost) return ''
+      
+      const { full_post, selectedHashtags } = currentPost
+      
+      // 1. Quitar las citas [1], [2], etc.
+      let cleanPost = full_post.replace(/\s*\[\d+\]/g, '')
+
+      // 2. Quitar los hashtags que la IA haya pegado al final del texto por error.
+      // Busca todo lo que empiece con # al puro final del string y lo borra.
+      cleanPost = cleanPost.replace(/(?:\s*(?:#[\wáéíóúñÁÉÍÓÚÑ]+\s*)+)$/i, '').trim()
+
+      // 3. Agregar NUESTROS hashtags controlados
+      const hashtagsText = selectedHashtags.length > 0
+        ? '\n\n' + selectedHashtags.join(' ')
+        : ''
+        
+      return cleanPost + hashtagsText
+    },
 }))
 
 export default usePostStore
