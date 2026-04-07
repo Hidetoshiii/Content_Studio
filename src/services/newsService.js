@@ -51,11 +51,12 @@ async function fetchFromNewsData(apiKey) {
   try {
     const res = await axios.get('/newsdata/api/1/news', {
       params: {
-        apikey:   apiKey,
-        country:  'pe',
-        language: 'es',
-        category: 'business,top',
-        size:     10,
+        apikey:    apiKey,
+        country:   'pe',
+        language:  'es',
+        category:  'business',
+        timeframe: 48,
+        size:      50,
       },
       timeout: 12000,
     })
@@ -73,11 +74,12 @@ async function fetchFromNewsData(apiKey) {
   try {
     const res = await axios.get('/newsdata/api/1/news', {
       params: {
-        apikey:   apiKey,
-        language: 'es',
-        category: 'business',
-        q:        'economía OR finanzas OR inversión OR mercados OR banco',
-        size:     10,
+        apikey:    apiKey,
+        language:  'es',
+        category:  'business',
+        q:         'economía OR finanzas OR inversión OR mercados OR banco',
+        timeframe: 48,
+        size:      20,
       },
       timeout: 12000,
     })
@@ -120,8 +122,8 @@ export async function fetchNews(newsDataKey) {
     )
   }
 
-  // Mezcla aleatoria + límite de 30 artículos para no saturar Agent 1
-  const shuffled = articles.sort(() => Math.random() - 0.5).slice(0, 30)
+  // Mezcla aleatoria + límite de 50 artículos para darle al Agente 1 un pool amplio
+  const shuffled = articles.sort(() => Math.random() - 0.5).slice(0, 50)
   console.info(`[newsService] Total para Agente 1: ${shuffled.length} artículos`)
   return shuffled
 }
