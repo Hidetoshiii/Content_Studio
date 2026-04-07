@@ -1,17 +1,26 @@
 /**
  * Step1Discover — Paso 1: Buscar y seleccionar noticia.
- *
- * El usuario presiona "Buscar Noticias" → la app llama a NewsAPI → Agente 1
- * → muestra 3 tarjetas curadas. El usuario selecciona una para continuar.
  */
 
-import useNews     from '@/hooks/useNews'
-import useAppStore from '@/stores/appStore'
-import NewsCard        from '@/components/news/NewsCard'
-import Button          from '@/components/ui/Button'
-import SkeletonLoader  from '@/components/ui/SkeletonLoader'
-import ErrorBanner     from '@/components/ui/ErrorBanner'
-import EmptyState      from '@/components/ui/EmptyState'
+import useNews        from '@/hooks/useNews'
+import useAppStore    from '@/stores/appStore'
+import NewsCard       from '@/components/news/NewsCard'
+import Button         from '@/components/ui/Button'
+import LoadingScreen  from '@/components/ui/LoadingScreen'
+import ErrorBanner    from '@/components/ui/ErrorBanner'
+import EmptyState     from '@/components/ui/EmptyState'
+
+const LOADING_PHASES = [
+  'Conectando con fuentes de noticias',
+  'Descargando feed de BBC Mundo',
+  'Descargando feed de Gestión Perú',
+  'Descargando feed de RPP Noticias',
+  'Filtrando artículos financieros relevantes',
+  'Enviando noticias al Agente Curador',
+  'Evaluando relevancia para FINLAT',
+  'Priorizando las 3 mejores noticias',
+  'Preparando tarjetas de resumen',
+]
 
 /**
  * @param {{ onNewsSelected: () => void }} props
@@ -29,30 +38,54 @@ function Step1Discover({ onNewsSelected }) {
 
   const { hasValidApiKeys } = useAppStore()
 
-  const handleSelect = (id) => {
-    selectNews(id)
-  }
-
   const handleContinue = () => {
     if (selectedNewsId) onNewsSelected()
   }
 
-  // Sin API key de Anthropic (obligatoria)
+  // ── Guard: falta API key de Anthropic ──────────────────────────────────────
   if (!hasValidApiKeys()) {
     return (
       <EmptyState
         icon="⚙️"
         title="Falta la API key de Anthropic"
-        description='Ve a Configuración y pega tu API key de Anthropic (empieza con "sk-ant-"). La key de NewsAPI es opcional.'
+        description='Ve a Configuración y pega tu API key (empieza con "sk-ant-"). La key de NewsAPI es opcional.'
         action={{ label: 'Ir a Configuración', onClick: () => window.location.href = '/configuracion' }}
       />
     )
   }
 
+  // ── Pantalla de carga ──────────────────────────────────────────────────────
+  if (isLoadingNews) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-smoke">Buscar noticias del día</h2>
+            <p className="text-sm text-smoke-muted mt-0.5">
+              La IA analiza las noticias financieras más recientes.
+            </p>
+          </div>
+          <Button variant="ghost" size="md" disabled>
+            Buscando…
+          </Button>
+        </div>
+
+        <div className="rounded-card border border-oxford-light/20 bg-oxford/20">
+          <LoadingScreen
+            title="Agente 1 — Curador de Noticias"
+            phases={LOADING_PHASES}
+            estimatedSeconds={30}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Render normal ──────────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
 
-      {/* Header del paso */}
+      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-bold text-smoke">Buscar noticias del día</h2>
@@ -63,11 +96,10 @@ function Step1Discover({ onNewsSelected }) {
         <Button
           variant="primary"
           size="md"
-          loading={isLoadingNews}
           onClick={fetchAndAnalyzeNews}
           className="shrink-0"
         >
-          {isLoadingNews ? 'Analizando...' : topNews.length > 0 ? '↺ Actualizar' : 'Buscar Noticias'}
+          {topNews.length > 0 ? '↺ Actualizar' : 'Buscar Noticias'}
         </Button>
       </div>
 
@@ -82,31 +114,15 @@ function Step1Discover({ onNewsSelected }) {
       )}
 
       {/* Error */}
-      {newsError && !isLoadingNews && (
+      {newsError && (
         <ErrorBanner
           message={newsError}
           onRetry={fetchAndAnalyzeNews}
         />
       )}
 
-      {/* Cargando */}
-      {isLoadingNews && (
-        <div className="space-y-5">
-          {/* Barra de progreso animada */}
-          <div className="w-full h-1 bg-oxford-light/20 rounded-full overflow-hidden">
-            <div className="h-full bg-oxford-light rounded-full animate-pulse" style={{ width: '60%' }} />
-          </div>
-          <p className="text-sm text-smoke-muted text-center animate-pulse">
-            ⏳ Descargando noticias y analizando con IA… puede tardar 15–30 segundos.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <SkeletonLoader variant="news-card" count={3} />
-          </div>
-        </div>
-      )}
-
       {/* Noticias */}
-      {!isLoadingNews && topNews.length > 0 && (
+      {topNews.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {topNews.map(news => (
@@ -114,12 +130,10 @@ function Step1Discover({ onNewsSelected }) {
                 key={news.id}
                 news={news}
                 selected={news.id === selectedNewsId}
-                onSelect={handleSelect}
+                onSelect={selectNews}
               />
             ))}
           </div>
-
-          {/* Botón continuar */}
           {selectedNewsId && (
             <div className="flex justify-end pt-2 animate-fade-in">
               <Button variant="primary" size="lg" onClick={handleContinue}>
@@ -130,8 +144,8 @@ function Step1Discover({ onNewsSelected }) {
         </>
       )}
 
-      {/* Estado vacío inicial */}
-      {!isLoadingNews && topNews.length === 0 && !newsError && (
+      {/* Estado vacío */}
+      {topNews.length === 0 && !newsError && (
         <EmptyState
           icon="📰"
           title="No hay noticias aún"

@@ -2,14 +2,28 @@
  * Step3Draft — Paso 3: Editar el post generado antes del análisis.
  */
 
-import usePost         from '@/hooks/usePost'
+import usePost           from '@/hooks/usePost'
 import PostSectionEditor from '@/components/post/PostSectionEditor'
 import HashtagList       from '@/components/post/HashtagList'
 import Button            from '@/components/ui/Button'
 import Card              from '@/components/ui/Card'
 import ErrorBanner       from '@/components/ui/ErrorBanner'
+import LoadingScreen     from '@/components/ui/LoadingScreen'
 import { countChars }    from '@/utils/formatters'
 import { LENGTH_TIERS }  from '@/config/constants'
+
+const LOADING_PHASES = [
+  'Leyendo el post completo',
+  'Evaluando el gancho de apertura',
+  'Analizando densidad informativa',
+  'Midiendo legibilidad y ritmo',
+  'Verificando estructura narrativa',
+  'Revisando llamada a la acción',
+  'Calculando score de engagement',
+  'Generando recomendaciones prioritarias',
+  'Redactando versión mejorada',
+  'Preparando concepto visual e imagen IA',
+]
 
 /**
  * @param {{ onAnalyzed: () => void }} props
@@ -36,6 +50,28 @@ function Step3Draft({ onAnalyzed }) {
     onAnalyzed()
   }
 
+  // ── Pantalla de carga ────────────────────────────────────────────────────
+  if (isAnalyzing) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-smoke">Análisis de Engagement</h2>
+          <p className="text-sm text-smoke-muted mt-0.5">
+            El Agente 3 evalúa tu post y genera la versión mejorada.
+          </p>
+        </div>
+        <div className="rounded-card border border-oxford-light/20 bg-oxford/20">
+          <LoadingScreen
+            title="Agente 3 — Analizador de Engagement"
+            phases={LOADING_PHASES}
+            estimatedSeconds={25}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  // ── Render normal ────────────────────────────────────────────────────────
   return (
     <div className="space-y-5">
 
@@ -98,13 +134,8 @@ function Step3Draft({ onAnalyzed }) {
 
       {/* Analizar */}
       <div className="flex justify-end">
-        <Button
-          variant="primary"
-          size="lg"
-          loading={isAnalyzing}
-          onClick={handleAnalyze}
-        >
-          {isAnalyzing ? 'Analizando engagement...' : 'Analizar Engagement →'}
+        <Button variant="primary" size="lg" onClick={handleAnalyze}>
+          Analizar Engagement →
         </Button>
       </div>
 

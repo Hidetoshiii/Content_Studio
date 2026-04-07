@@ -6,31 +6,22 @@
  *   2. analyzeNews (claudeService / Agente 1) — selecciona top 3 + banco
  *   3. Actualiza newsStore con el top 3
  *   4. Persiste el banco de noticias en localStorage via useStorage
- */
-
-import { useCallback } from 'react'
-import useNewsStore  from '@/stores/newsStore'
-import useAppStore   from '@/stores/appStore'
-import { fetchNews }        from '@/services/newsService'
-import { analyzeNews }      from '@/services/claudeService'
-import { ClaudeServiceError } from '@/services/claudeService'
-import useStorage    from './useStorage'
-
-/**
- * useNews
  *
- * @returns {{
- *   topNews: object[],
- *   selectedNewsId: string | null,
- *   windowExpanded: boolean,
- *   isLoadingNews: boolean,
- *   newsError: string | null,
- *   fetchAndAnalyzeNews: () => Promise<void>,
- *   selectNews: (id: string) => void,
- *   clearTopNews: () => void,
- *   getSelectedNews: () => object | null
- * }}
+ * NOTA: Se usa flushSync para garantizar que React renderice el estado de
+ * carga ANTES de iniciar el fetch. Sin esto, React 18 automatic batching
+ * puede agrupar setLoadingNews(true) + setLoadingNews(false) en un solo
+ * render si la operación falla muy rápido, haciendo invisible la pantalla
+ * de carga.
  */
+
+import { useCallback }  from 'react'
+import { flushSync }    from 'react-dom'
+import useNewsStore     from '@/stores/newsStore'
+import useAppStore      from '@/stores/appStore'
+import { fetchNews }           from '@/services/newsService'
+import { analyzeNews, ClaudeServiceError } from '@/services/claudeService'
+import useStorage       from './useStorage'
+
 function useNews() {
   const {
     topNews,
@@ -51,31 +42,36 @@ function useNews() {
   const { appendNewsBank, getHistoryForAgents } = useStorage()
 
   /**
-   * fetchAndAnalyzeNews — Ejecuta el pipeline completo del paso 1.
-   * Llama a NewsAPI/RSS → Agente 1 → actualiza store + localStorage.
+   * fetchAndAnalyzeNews — Pipeline completo del paso 1.
+   *
+   * flushSync fuerza a React a renderizar la pantalla de carga de inmediato,
+   * antes de que empiece cualquier operación async (fetch / Claude).
    */
   const fetchAndAnalyzeNews = useCallback(async () => {
-    setLoadingNews(true)
-    setNewsError(null)
+    // ── Forzar render del estado de carga ANTES de cualquier await ──────────
+    flushSync(() => {
+      setLoadingNews(true)
+      setNewsError(null)
+    })
 
     try {
-      // 1. Obtener artículos crudos
+      // 1. Obtener artículos crudos (RSS + NewsAPI opcional)
       const rawArticles = await fetchNews(apiKeys.newsapi)
 
       if (rawArticles.length === 0) {
         throw new Error('No se encontraron noticias disponibles en este momento.')
       }
 
-      // 2. Pasar al Agente 1 para curación
-      const currentDate    = new Date().toISOString().split('T')[0]
-      const recentHistory  = getHistoryForAgents(7)
+      // 2. Agente 1 — curación con Claude
+      const currentDate   = new Date().toISOString().split('T')[0]
+      const recentHistory = getHistoryForAgents(7)
 
       const result = await analyzeNews(
         { rawArticles, currentDate, recentHistory },
         apiKeys.anthropic,
       )
 
-      // 3. Actualizar store con el top 3
+      // 3. Actualizar store con el top 3 curado
       setTopNews(result.top_news ?? [])
       setWindowExpanded(result.ventana_ampliada ?? false)
 
@@ -84,7 +80,6 @@ function useNews() {
         appendNewsBank(result.news_bank)
       }
 
-      // Notificación si la ventana fue ampliada
       if (result.ventana_ampliada) {
         addNotification({
           type:    'warning',
@@ -98,13 +93,13 @@ function useNews() {
       if (err instanceof ClaudeServiceError) {
         switch (err.type) {
           case 'INVALID_API_KEY':
-            errorMessage = 'API key de Anthropic inválida. Revisa tu configuración.'
+            errorMessage = 'API key de Anthropic inválida. Revisa Configuración.'
             break
           case 'RATE_LIMIT':
             errorMessage = 'Límite de solicitudes alcanzado. Espera unos segundos.'
             break
           case 'JSON_PARSE_FAILED':
-            errorMessage = 'Error al procesar la respuesta de Claude. Intenta nuevamente.'
+            errorMessage = 'Error al interpretar la respuesta de Claude. Intenta nuevamente.'
             break
           case 'NETWORK_ERROR':
             errorMessage = 'Sin conexión. Verifica tu red e intenta nuevamente.'

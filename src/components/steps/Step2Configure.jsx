@@ -2,12 +2,25 @@
  * Step2Configure — Paso 2: Elegir formato y longitud del post.
  */
 
-import usePost     from '@/hooks/usePost'
-import useNews     from '@/hooks/useNews'
-import Button       from '@/components/ui/Button'
-import Card         from '@/components/ui/Card'
-import ErrorBanner  from '@/components/ui/ErrorBanner'
+import usePost       from '@/hooks/usePost'
+import useNews       from '@/hooks/useNews'
+import Button        from '@/components/ui/Button'
+import Card          from '@/components/ui/Card'
+import ErrorBanner   from '@/components/ui/ErrorBanner'
+import LoadingScreen from '@/components/ui/LoadingScreen'
 import { LENGTH_TIERS } from '@/config/constants'
+
+const LOADING_PHASES = [
+  'Leyendo la noticia seleccionada',
+  'Construyendo el gancho de apertura',
+  'Redactando el cuerpo del post',
+  'Ajustando el tono a la voz FINLAT',
+  'Incorporando datos financieros clave',
+  'Optimizando para el formato elegido',
+  'Seleccionando hashtags relevantes',
+  'Revisando longitud y estructura',
+  'Finalizando el borrador',
+]
 
 const FORMATS = [
   {
@@ -54,6 +67,29 @@ function Step2Configure({ onPostGenerated }) {
   }
 
   const canGenerate = format && lengthTier && !isGeneratingPost
+
+  // ── Pantalla de carga ────────────────────────────────────────────────────
+  if (isGeneratingPost) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-lg font-bold text-smoke">Configurar post</h2>
+          <p className="text-sm text-smoke-muted mt-0.5">
+            Formato: <span className="text-smoke capitalize">{format}</span>
+            {' · '}
+            Longitud: <span className="text-smoke capitalize">{lengthTier}</span>
+          </p>
+        </div>
+        <div className="rounded-card border border-oxford-light/20 bg-oxford/20">
+          <LoadingScreen
+            title="Agente 2 — Redactor de Posts"
+            phases={LOADING_PHASES}
+            estimatedSeconds={20}
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
